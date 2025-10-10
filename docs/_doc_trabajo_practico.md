@@ -4,8 +4,11 @@
 # Trabajo Práctico Final - Estructura de Datos
 
 Integrantes del grupo:
+
 • Julian Fernández - julianfernandez197612@gmail.com
+
 • Mateo Danilo Gerez - titi04gerez@gmail.com
+
 • Adrian Eduardo Her Molins - hermolins@gmail.com
 
 Materia: Estructura de Datos
