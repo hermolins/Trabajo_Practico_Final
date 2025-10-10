@@ -13,6 +13,13 @@
       "destinatario": "juanjose@gmail.com",
       "asunto": "nuevo correco ",
       "cuerpo": "asdasdafafasfafa"
+    },
+    {
+      "id": "bbe5c596a2bc4456a8bd9cec4868c5fb",
+      "remitente": "hermolins@gmail.com",
+      "destinatario": "dairmisdaris@gmail.com",
+      "asunto": "prueba",
+      "cuerpo": "Hola, esta es una prueba a ver si esta funcionando el codigo. XP"
     }
   ],
   "carpeta_raiz": {
@@ -36,6 +43,8 @@
         ]
       }
     ],
-    "mensajes": []
+    "mensajes": [
+      "bbe5c596a2bc4456a8bd9cec4868c5fb"
+    ]
   }
 }
