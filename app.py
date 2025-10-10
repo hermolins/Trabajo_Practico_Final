@@ -1,6 +1,7 @@
-from flask import Flask, render_template, request, redirect, url_for, session # <- Importar 'session'
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash, get_flashed_messages
 import json
 import os
+from models import Almacen, Mensaje, Carpeta
 
 app = Flask(__name__)
 # Agrega una clave secreta para la seguridad de las sesiones
@@ -86,63 +87,11 @@ class ListaUsuarios:
 usuarios = ListaUsuarios()
 
 # =========================
-# ÁRBOL BINARIO DE MENSAJES
+# Almacen persistente de carpetas y mensajes
 # =========================
 
-class NodoMensaje:
-    def __init__(self, remitente, destinatario, asunto, cuerpo):
-        self.id = id(self) # Usamos el id en memoria como un ID simple
-        self.remitente = remitente
-        self.destinatario = destinatario
-        self.asunto = asunto
-        self.cuerpo = cuerpo
-        self.izquierda = None
-        self.derecha = None
-
-class ArbolMensajes:
-    def __init__(self):
-        self.raiz = None
-
-    def _insertar_recursivo(self, nodo, nuevo_mensaje):
-        # Usamos el 'id' del mensaje como clave de comparación
-        if nuevo_mensaje.id < nodo.id:
-            if nodo.izquierda is None:
-                nodo.izquierda = nuevo_mensaje
-            else:
-                self._insertar_recursivo(nodo.izquierda, nuevo_mensaje)
-        else:
-            if nodo.derecha is None:
-                nodo.derecha = nuevo_mensaje
-            else:
-                self._insertar_recursivo(nodo.derecha, nuevo_mensaje)
-
-    def insertar(self, remitente, destinatario, asunto, cuerpo):
-        nuevo_mensaje = NodoMensaje(remitente, destinatario, asunto, cuerpo)
-        if self.raiz is None:
-            self.raiz = nuevo_mensaje
-        else:
-            self._insertar_recursivo(self.raiz, nuevo_mensaje)
-        return True
-
-    def _obtener_inorden(self, nodo, mensajes):
-        if nodo is not None:
-            self._obtener_inorden(nodo.izquierda, mensajes)
-            mensajes.append({
-                "id": nodo.id,
-                "remitente": nodo.remitente,
-                "destinatario": nodo.destinatario,
-                "asunto": nodo.asunto,
-                "cuerpo": nodo.cuerpo
-            })
-            self._obtener_inorden(nodo.derecha, mensajes)
-
-    def obtener_todos(self):
-        mensajes = []
-        self._obtener_inorden(self.raiz, mensajes)
-        return mensajes
-
-# Inicializamos el árbol
-mensajes = ArbolMensajes()
+# Crea/usa data.json en el directorio del proyecto
+almacen = Almacen(path='data.json')
 
 
 # =========================
@@ -206,9 +155,11 @@ def componer_correo():
         asunto = request.form['asunto']
         cuerpo = request.form['cuerpo']
 
-        # Insertar el mensaje en el Árbol
-        mensajes.insert(remitente, destinatario, asunto, cuerpo)
+        # Insertar el mensaje en el almacen persistente (Inbox por defecto)
+        nuevo = Mensaje(remitente, destinatario, asunto, cuerpo)
+        almacen.agregar_mensaje(nuevo)
         mensaje = "✅ Mensaje enviado y guardado con éxito!"
+        flash(mensaje, 'success')
 
     # Pasamos el email del remitente (de la sesión) a la plantilla
     return render_template('correo.html', mensaje=mensaje, remitente_email=remitente)
@@ -220,8 +171,72 @@ def logout():
 
 @app.route('/mensajes')
 def ver_mensajes():
-    lista_mensajes = mensajes.obtener_todos()
-    return render_template('mensajes.html', mensajes=lista_mensajes)
+    # Construir lista de mensajes con info de carpeta (añadir carpeta actual)
+    lista = []
+    for m in almacen.mensajes.values():
+        d = m.to_dict()
+        carpeta = almacen.carpeta_de_mensaje(m.id)
+        d['carpeta_id'] = carpeta.id if carpeta else None
+        d['carpeta_ruta'] = '/'.join(['Inbox']) if carpeta is None else None
+        if carpeta:
+            # construir ruta legible
+            # (usar listar_carpetas_con_ruta para buscar la ruta por id)
+            rutas = [c for c in almacen.listar_carpetas_con_ruta() if c['id'] == carpeta.id]
+            d['carpeta_ruta'] = rutas[0]['ruta'] if rutas else carpeta.nombre
+        lista.append(d)
+
+    carpetas = almacen.listar_carpetas_con_ruta()
+    return render_template('mensajes.html', mensajes=lista, carpeta_raiz=almacen.raiz, carpetas=carpetas)
+
+
+@app.route('/carpetas/crear', methods=['POST'])
+def crear_carpeta():
+    nombre = request.form.get('nombre')
+    padre_id = request.form.get('padre_id')
+    if not nombre:
+        return redirect(url_for('ver_mensajes'))
+    padre = almacen.raiz if not padre_id else almacen.raiz.buscar_por_id(padre_id)
+    if padre is None:
+        padre = almacen.raiz
+    nueva = Carpeta(nombre)
+    padre.hijos.append(nueva)
+    almacen.guardar()
+    flash(f"Carpeta '{nombre}' creada en {padre.nombre}", 'success')
+    return redirect(url_for('ver_mensajes'))
+
+
+@app.route('/mensajes/mover', methods=['POST'])
+def mover_mensaje():
+    mensaje_id = request.form.get('mensaje_id')
+    destino_id = request.form.get('destino_id')
+    if not mensaje_id or not destino_id:
+        flash('Faltan datos para mover el mensaje.', 'error')
+        return redirect(url_for('ver_mensajes'))
+    ok = almacen.mover_mensaje(mensaje_id, destino_id)
+    if ok:
+        flash('✅ Mensaje movido correctamente.', 'success')
+    else:
+        flash('❌ No se pudo mover el mensaje. Verifica IDs.', 'error')
+    return redirect(url_for('ver_mensajes'))
+
+
+@app.route('/buscar')
+def buscar():
+    termino = request.args.get('q', '')
+    resultados = []
+    if termino:
+        resultados = almacen.buscar_mensajes(termino)
+    mensajes = [r['mensaje'] for r in resultados]
+    # adjuntar carpeta actual y lista de carpetas
+    lista = []
+    for m in mensajes:
+        carpeta = almacen.carpeta_de_mensaje(m['id'])
+        m['carpeta_id'] = carpeta.id if carpeta else None
+        rutas = [c for c in almacen.listar_carpetas_con_ruta() if c['id'] == (carpeta.id if carpeta else 'root')]
+        m['carpeta_ruta'] = rutas[0]['ruta'] if rutas else ('Inbox' if not carpeta else carpeta.nombre)
+        lista.append(m)
+    carpetas = almacen.listar_carpetas_con_ruta()
+    return render_template('mensajes.html', mensajes=lista, resultados=resultados, carpeta_raiz=almacen.raiz, carpetas=carpetas)
 
 
 @app.route('/')

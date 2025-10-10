@@ -1,0 +1,41 @@
+{
+  "mensajes": [
+    {
+      "id": "cad85f57dbbc4651922aca298b9460fb",
+      "remitente": "titi04gerez@gmail.com",
+      "destinatario": "pepito@gmail.com",
+      "asunto": "trabajo ",
+      "cuerpo": "prueba de mensaje "
+    },
+    {
+      "id": "bbe87f18fbd941eda9f2b9ca128c056d",
+      "remitente": "titi04gerez@gmail.com",
+      "destinatario": "juanjose@gmail.com",
+      "asunto": "nuevo correco ",
+      "cuerpo": "asdasdafafasfafa"
+    }
+  ],
+  "carpeta_raiz": {
+    "id": "root",
+    "nombre": "Inbox",
+    "hijos": [
+      {
+        "id": "072700ab357c4293acdfda2d596cca97",
+        "nombre": "trabajo de programacion",
+        "hijos": [],
+        "mensajes": [
+          "cad85f57dbbc4651922aca298b9460fb"
+        ]
+      },
+      {
+        "id": "502046662d8040519baa6d574c0755eb",
+        "nombre": "nuevo correo",
+        "hijos": [],
+        "mensajes": [
+          "bbe87f18fbd941eda9f2b9ca128c056d"
+        ]
+      }
+    ],
+    "mensajes": []
+  }
+}

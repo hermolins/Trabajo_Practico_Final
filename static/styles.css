@@ -19,6 +19,12 @@ body {
     box-shadow: 0 0 20px rgba(0,0,0,0.5);
     width: 350px;
     text-align: center;
+    /* Contenedor ancho para vistas tipo dashboard */
+}
+.container.large {
+    width: 1000px;
+    padding: 25px;
+    text-align: left;
 }
 
 /* Formularios */
@@ -46,6 +52,40 @@ button {
 
 button:hover {
     background-color: #5393ff;
+    /* Flash messages */
+.flash {
+    padding: 10px 15px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+}
+.flash.success { background-color: #073b14; color: #b6f0bf; }
+.flash.error { background-color: #381212; color: #ffb6b6; }
+
+/* Carpeta / árbol */
+.carpeta { margin-left: 10px; margin-bottom: 8px; }
+.carpeta strong { color: #bcdcff; }
+.carpeta form input[name="nombre"] { width: 200px; display:inline-block; margin-left:10px }
+
+/* Tabla estilizada para mensajes */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    background-color: transparent;
+}
+
+th, td {
+    padding: 12px;
+    border: 1px solid #2a2a2a;
+}
+
+th { background-color: #2a2a2a; color: #dfefff }
+
+td { background-color: #1b1b1b }
+
+select { padding: 6px; border-radius: 5px; background:#2c2c2c; color:#e0e0e0; border:none }
+
+.acciones button { padding:6px 10px; width:auto }
 }
 
 /* Mensajes */

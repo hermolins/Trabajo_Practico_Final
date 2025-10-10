@@ -2,11 +2,48 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Mensajes Guardados</title>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <h1>📬 Mensajes Guardados (Árbol Binario)</h1>
-    
+<div class="container large">
+        <h1>📬 Mensajes Guardados</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, text in messages %}
+                        <div class="flash {{ category }}">{{ text }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('buscar') }}" method="get">
+        <input type="text" name="q" placeholder="Buscar por asunto o remitente">
+        <button type="submit">Buscar</button>
+    </form>
+
+    <h2>Estructura de carpetas</h2>
+    {% macro render_carpeta(carpeta) -%}
+        <div class="carpeta">
+            <strong>{{ carpeta.nombre }}</strong> (id: {{ carpeta.id }})
+            <form action="{{ url_for('crear_carpeta') }}" method="post" style="display:inline">
+                <input type="hidden" name="padre_id" value="{{ carpeta.id }}">
+                <input name="nombre" placeholder="Nueva subcarpeta">
+                <button type="submit">Crear</button>
+            </form>
+            {% for hijo in carpeta.hijos %}
+                {{ render_carpeta(hijo) }}
+            {% endfor %}
+        </div>
+    {%- endmacro %}
+
+    {% if carpeta_raiz %}
+        {{ render_carpeta(carpeta_raiz) }}
+    {% endif %}
+
+    <h2>Mensajes</h2>
+
     {% if mensajes %}
         <table border="1">
             <thead>
@@ -16,6 +53,8 @@
                     <th>Destinatario</th>
                     <th>Asunto</th>
                     <th>Cuerpo</th>
+                    <th>Carpeta</th>
+                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -26,6 +65,18 @@
                         <td>{{ msg.destinatario }}</td>
                         <td>{{ msg.asunto }}</td>
                         <td>{{ msg.cuerpo }}</td>
+                        <td>{{ msg.carpeta_ruta if msg.carpeta_ruta is defined else 'Inbox' }}</td>
+                        <td>
+                            <form action="{{ url_for('mover_mensaje') }}" method="post" style="display:inline">
+                                <input type="hidden" name="mensaje_id" value="{{ msg.id }}">
+                                <select name="destino_id">
+                                    {% for c in carpetas %}
+                                        <option value="{{ c.id }}">{{ c.ruta }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit">Mover</button>
+                            </form>
+                        </td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -34,7 +85,17 @@
         <p>No hay mensajes guardados.</p>
     {% endif %}
 
+    {% if resultados is defined and resultados %}
+        <h3>Resultados de búsqueda</h3>
+        <ul>
+        {% for r in resultados %}
+            <li>{{ r.mensaje.asunto }} — remitente: {{ r.mensaje.remitente }} — carpeta: {{ r.ruta }}</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+
     <hr>
     <p><a href="{{ url_for('componer_correo') }}">Componer Nuevo Correo</a></p>
+</div>
 </body>
 </html>
